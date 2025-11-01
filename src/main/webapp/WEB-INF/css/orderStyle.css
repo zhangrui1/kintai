@@ -1,0 +1,78 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+h2, h4 {
+    font-weight: bold;
+}
+
+.card {
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.table-primary th {
+    background-color: #007bff;
+    color: white;
+}
+
+.table-bordered th, .table-bordered td {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.form-label {
+    font-weight: bold;
+    color: black;
+}
+
+.red {
+    color: red;
+}
+input:invalid {
+    border-color: red;
+}
+
+/* 偶数行颜色（浅蓝色，与 primary 深蓝色搭配） */
+.ht_master tr:nth-child(even) td {
+    background-color: #f8f9fa;  /* 浅蓝色 */
+}
+
+
+/* 奇数行颜色（浅灰色，符合 Bootstrap 的默认背景色） */
+.ht_master tr:nth-child(odd) td {
+    background-color: #cce5ff;  /* 浅灰色 */
+}
+
+/* 画面全体のオーバーレイ */
+.loadingOverlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* 半透明の背景 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* スピナー */
+.spinner {
+    border: 8px solid #f3f3f3; /* 外側の薄い色 */
+    border-top: 8px solid #3498db; /* 上部分の色 */
+    border-radius: 50%;
+    width: 200px;
+    height: 200px;
+    animation: spin 1s linear infinite; /* アニメーション */
+}
+
+/* スピナーの回転アニメーション */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+

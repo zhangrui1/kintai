@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.toyo.kintai.dao.HistoryValveMapper">
+
+    <insert id="insertHV" parameterType="HistoryValve">
+        INSERT
+        INTO historySlip(hUsername, hTablename, hTargetId, hDetail,hIp,hHost,hUpdateBefore,hUpdateAfter, hTrkDate)
+        VALUES (#{hUsername}, #{hTablename},#{hTargetId}, #{hDetail}, #{hIp}, #{hHost},#{hUpdateBefore},#{hUpdateAfter},#{hTrkDate})
+    </insert>
+</mapper>

@@ -1,0 +1,33 @@
+/* All images should be responsive */
+img {
+    max-width: 100% !important;
+}
+.sort-highlight {
+    background: #f4f4f4;
+    border: 1px dashed #ddd;
+    margin-bottom: 10px;
+}
+.modal-xlg{
+    width:85%;
+}
+
+.previewDiv{
+    margin-top:50px;
+    text-align: center;
+}
+
+#imageList{
+    border-right:solid 5px #eee;
+    overflow-y: scroll;
+    height: 600px;
+}
+.box.box-solid.box-image > .box-header {
+    color: #fff;
+    background: #3c8dbc;
+    background-color: #3c8dbc;
+}
+.box.box-solid.box-image-kouji > .box-header {
+    color: #fff;
+    background: #f56954;
+    background-color: #f56954;
+}

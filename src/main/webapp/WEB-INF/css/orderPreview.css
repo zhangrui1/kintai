@@ -1,0 +1,433 @@
+/* 印刷時の用紙設定 */
+@page {
+    size: A4;
+    /* 用紙サイズ */
+    margin: 0;
+    /* ヘッダー・フッダーを無効化 */
+}
+
+/* 要素の初期化 */
+* {
+    /* マージン・パディングをリセットした方がデザインしやすい */
+    margin: 0;
+    padding: 0;
+    /* デフォルトのフォント */
+    color: #191970;
+    font-family: "游ゴシック Medium", "Yu Gothic Medium", "游ゴシック体", YuGothic,
+        sans-serif;
+    font-size: 11pt;
+    font-weight: normal;
+    /* 背景色・背景画像を印刷する（Chromeのみで有効） */
+}
+
+/* リスト初期化 */
+ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+/* ページレイアウト (section.sheet を１ページとする) */
+.sheet {
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+    page-break-after: always;
+
+    /* 用紙サイズ A4 */
+    height: 297mm;
+    width: 210mm;
+
+    /* 余白サイズ */
+    padding-top: 13mm;
+    padding-left: 12mm;
+    padding-right: 12mm;
+}
+
+/* プレビュー用のスタイル */
+@media screen {
+    body {
+        background: #e0e0e0;
+    }
+
+    .sheet {
+        background: white;
+        /* 背景を白く */
+        box-shadow: 0 0.5mm 2mm rgba(0, 0, 0, 0.3);
+        /* ドロップシャドウ */
+        margin: 5mm auto;
+    }
+}
+
+/* 汎用クラス */
+.text-left {
+    text-align: left;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.clear-element {
+    clear: both;
+}
+
+/* 大枠の指定 */
+
+/* 确保日付和管理No.显示在右上角 */
+.header-info {
+    position: absolute;
+    top: 9px;
+    right: 16px;
+    text-align: right;
+}
+
+div.row_1 {
+    height: 14mm;
+}
+
+div.row_2 {
+    height: 14mm;
+}
+
+div.row_3 {
+    height: 55mm;
+}
+
+div.row_3 div.col_1 {
+    width:90mm;
+    padding-top: 3mm;
+    float: left;
+}
+
+div.row_3 div.col_2 {
+    position: relative;
+    z-index: 2;
+    padding-top: 1mm;
+    float: right;
+}
+
+div.row_4 {
+    height: 10mm;
+    margin-top: 5px; /* 控制与上方的距离 */
+    margin-bottom: 1px; /* 控制与下方的距离 */
+}
+
+div.row_4 h2 {
+    display: inline-block; /* 将两个 h2 元素设置为同一行显示 */
+    margin: 0;
+}
+
+
+div.row_5 {
+    height: 32mm;
+}
+
+div.row_5 div.col_1 {
+    width:60mm;
+    float: left;
+}
+
+div.row_5 div.col_2 {
+    position: relative;
+    z-index: 2;
+    padding-top: 1mm;
+    float: right;
+}
+
+div.row_6 {
+    height: 10mm;
+}
+.row_6 th, .row_6 td {
+    vertical-align: middle;
+    line-height: 1.5;
+    font-size: 1.2em; /* 可以调整字体大小 */
+}
+
+.row_6 sup {
+    font-size: 0.6em; /* 调整解释文本的字体大小 */
+    vertical-align: baseline; /* 确保解释文和金额在同一行 */
+}
+
+
+div.row_7 {
+    height: 120mm;
+}
+
+
+/* 统一字体大小 */
+li {
+    font-size: 14px; /* 将字体大小调整为与 "〒779-0104 徳島県板野郡..." 的大小相同 */
+}
+
+.subject-title {
+    font-weight: bold;
+    font-size: 14px;
+    display: inline-block; /* 保证在同一行显示 */
+}
+
+.subject-content {
+    font-size: 14px;    /* 保持较大的字体 */
+    display: inline-block;    /* 保证与前面内容在同一行 */
+    padding-left: 10px; /* 设置间距 */
+    padding-bottom: 1px; /* 控制下划线与文本的距离 */
+    border-bottom: 2px solid lightgray; /* 添加下划线 */
+    width: auto; /* 确保根据内容调整宽度 */
+    text-decoration: none;
+}
+
+.subject-detail {
+    font-size: 17px;
+    display: inline-block;
+    padding-left: 10px;
+    text-decoration: none; /* 禁用默认下划线 */
+    border-bottom: 2px solid lightgray;  /* 自定义下划线 */
+    width: 90%;  /* 根据内容自动填充 */
+}
+
+/* 個別のスタイル指定 */
+/* タイトル */
+h1 {
+    background: #3366cc;
+    font-size: 30px;
+    font-weight: normal;
+    letter-spacing: 30px;
+    color: #ffffff;
+}
+
+/* 顧客名・自社名 */
+h2 {
+    font-size: 20px;
+    font-weight: normal;
+}
+
+
+
+/* 顧客名 */
+/* h2.customer_name {
+    text-decoration: underline;
+} */
+
+.black-line {
+    border: 0;
+    height: 2px;  /* 线的粗细 */
+    background-color: black;  /* 线的颜色 */
+    margin: 10px 0;  /* 上下留出适当的间距 */
+}
+
+.company-logo {
+    width: 300px; /* 调整宽度，根据需要修改 */
+    height: auto; /* 自动调整高度，保持图片比例 */
+    display: block; /* 使图片在块级显示，避免和其他元素混杂 */
+    margin-bottom: 10px; /* 控制图片和后面文本的距离 */
+}
+
+/* 承认部分的样式 */
+.approval-section {
+    margin-top: 2px; /* 控制与上方内容的距离 */
+}
+
+.approval-table {
+    width: 60%;
+    border-collapse: collapse;
+}
+
+/* 控制列宽的样式 */
+.approval-table td {
+    border: 1px solid #ccc;
+    text-align: center;
+    padding: 5px;
+}
+
+/* 控制“承认”列的宽度 */
+.approval-table td:first-child {
+    width: 10px; /* 设置“承认”列宽度 */
+}
+
+/* 控制印章图片的列宽 */
+.approval-table td:nth-child(2), 
+.approval-table td:nth-child(4) {
+    width: 40px; /* 设置图片列的宽度 */
+}
+
+/* 控制“担当”列的宽度 */
+.approval-table td:nth-child(3) {
+    width: 10px; /* 设置“担当”列宽度 */
+}
+
+/* 印章图片的样式 */
+.stamp {
+    width: 50px;
+    height: 50px;
+    position: relative;
+}
+
+/* 第一个印章的具体位置 */
+.stamp.stamp1 {
+    position: absolute;
+    top: 37mm;
+    left: 9mm;
+    height: 17mm;
+    width: 17mm;
+}
+
+/* 第二个印章的具体位置 */
+.stamp.stamp2 {
+    position: absolute;
+    top: 37mm;  /* 同样的top值以确保水平对齐 */
+    left: 35mm; /* 根据页面布局调整，设置适当的left值 */
+    height: 17mm;
+    width: 17mm;
+}
+
+img.stamp {
+    position: absolute;
+    z-index: 1;
+    top: 32mm;
+    left: 65mm;
+    height: 25mm;
+    width: 25mm;
+}
+
+/* テーブル共通 */
+table,
+th,
+td {
+    border: 1px #264d99 solid;
+    border-collapse: collapse;
+    padding: 1px 5px;
+}
+
+table th {
+    background: #3366cc;
+    font-weight: normal;
+    color: #ffffff;
+}
+
+table td {
+    text-align: right;
+}
+
+/* テーブル 総額欄 */
+table.summary th {
+    font-size: 14pt;
+    width: 32mm;
+}
+
+table.summary td {
+    font-size: 14pt;
+    width: 40mm;
+}
+
+/* テーブル 明細欄 */
+table.detail {
+    width: 100%;
+}
+
+table.detail tr {
+    height: 6mm;
+}
+
+table.detail th.item {
+    width: 50%;
+}
+
+table.detail th.unit_price {
+    width: 18%;
+}
+
+table.detail th.amount {
+    width: 14%;
+}
+
+table.detail th.subtotal {
+    width: 18%;
+}
+
+table.detail td.space {
+    border-left-style: hidden;
+    border-bottom-style: hidden;
+}
+
+table.detail tr.dataline:nth-child(odd) td {
+    background-color: #ccddff;
+}
+
+table.detail tr.dataline:nth-child(even) td {
+    background-color: #ffffff;
+}
+
+/* 悬浮按钮样式 */
+.floating-buttons {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    /* 按钮之间的间距 */
+    z-index: 1000;
+}
+
+.floating-buttons button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    /* 圆形按钮 */
+    background-color: rgba(0, 123, 255, 0.6);
+    /* 透明背景 */
+    border: none;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.15);
+    /* 阴影效果 */
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.floating-buttons button:hover {
+    background-color: rgba(0, 123, 255, 1);
+    /* 悬浮时加深颜色 */
+    transform: translateY(-5px);
+    /* 悬浮时轻微上移 */
+}
+
+.floating-buttons i {
+    font-size: 30px;
+    /* 图标大小 */
+    color: white;
+    cursor: pointer;
+    /* 鼠标指针变成小手 */
+}
+
+
+
+
+/*　底部备考栏布局设置 */
+.notes-container {
+    display: flex;
+    width: 100%; /* 整体宽度自适应 */
+    border: 1px solid #ccc; /* 外框，确保边框统一 */
+    border-top: 1px solid #ccc; /* 上边框，保证与其他线条一致 */
+}
+
+.notes-label {
+    width: 20px; /* 第一列固定宽度 */
+    text-align: center;
+    font-weight: bold;
+    padding: 10px; /* 内边距 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.notes-content {
+    flex-grow: 1; /* 第二列自动填满剩余空间 */
+    padding: 10px;
+    border-left: 1px solid #ccc; /* 列分隔线，调整粗细 */
+    min-height: 60px; /* 最小高度 */
+}

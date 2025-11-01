@@ -1,0 +1,230 @@
+/* ヘルプバルーン表示(2008/11/20 追加)
+* バルーン内2カラム表示・画像表示対応(111219 sm8)
+------------------------------------------------ */
+.bl_top, .bl_topL, .bl_topR,
+.bl_mid,
+.bl_btm, .bl_btmL, .bl_btmR,
+.bl_w_top, .bl_w_topL, .bl_w_topR,
+.bl_w_mid,
+.bl_w_btm, .bl_w_btmL, .bl_w_btmR { behavior: expression(IEPNGFIX.fix(this));}
+
+.helpBT,
+.helpBTW {
+    cursor:pointer;
+}
+.balloon {
+    position:absolute;
+    width:324px;
+    display:none;
+    z-index:999;
+}
+.balloon_wide {
+    position:absolute;
+    width:538px;
+    display:none;
+    z-index:999;
+}
+.bl_top {
+    background:url(../img/helper/balloon_tp.png);
+    width:324px;
+    height:10px;
+    overflow:hidden;
+}
+.bl_topL {
+    background:url(../img/helper/balloon_tp2.png);
+    width:324px;
+    height:27px;
+    overflow:hidden;
+}
+.bl_topR {
+    background:url(../img/helper/balloon_tp3.png);
+    width:324px;
+    height:27px;
+    overflow:hidden;
+}
+.bl_w_top {
+    background:url(../img/helper/balloon_w_tp.png);
+    width:538px;
+    height:10px;
+    overflow:hidden;
+}
+.bl_w_topL {
+    background:url(../img/helper/balloon_w_tp2.png);
+    width:538px;
+    height:27px;
+    overflow:hidden;
+}
+.bl_w_topR {
+    background:url(../img/helper/balloon_w_tp3.png);
+    width:538px;
+    height:27px;
+    overflow:hidden;
+}
+.bl_mid {
+    background:url(../img/helper/balloon_md.png) top left repeat-y;
+    width:324px;
+}
+.bl_w_mid {
+    background:url(../img/helper/balloon_w_md.png) top left repeat-y;
+    width:538px;
+}
+.bl_mid .Inbox,
+.bl_w_mid .Inbox { padding:0 13px 1px 10px; }
+.bl_mid .Inbox table,
+.bl_w_mid .Inbox table {
+    border-top:1px solid #ababab;
+    border-left:1px solid #ababab;
+}
+.bl_mid .Inbox table th,
+.bl_mid .Inbox table td,
+.bl_w_mid .Inbox table th,
+.bl_w_mid .Inbox table td {
+    border-bottom:1px solid #ababab;
+    border-right:1px solid #ababab;
+    background:none;
+    padding:5px;
+    line-height:140%;
+    vertical-align:top !important;
+}
+.bl_mid .Inbox table td.list,
+.bl_w_mid .Inbox table td.list { background:#f2f5f7;}
+.bl_mid .Inbox table.catalog,
+.bl_w_mid .Inbox table.catalog {
+    border:none;
+    width:100%;
+}
+.bl_mid .Inbox table.catalog td,
+.bl_w_mid .Inbox table.catalog td {
+    border:none;
+    width:33%;
+    text-align:center;
+    padding:3px;
+}
+.bl_mid .Inbox table th,
+.bl_w_mid .Inbox table th {
+    background:#e5ecf0;
+    padding:3px 5px;
+    font-weight:bold;
+}
+.bl_btm {
+    background:url(../img/helper/balloon_bt.png);
+    width:324px;
+    height:34px;
+    text-align:right;
+}
+.bl_btmL {
+    background:url(../img/helper/balloon_bt2.png);
+    width:324px;
+    height:49px;
+    text-align:right;
+}
+.bl_btmR {
+    background:url(../img/helper/balloon_bt3.png);
+    width:324px;
+    height:49px;
+    text-align:right;
+}
+.bl_w_btm {
+    background:url(../img/helper/balloon_w_bt.png);
+    width:538px;
+    height:34px;
+    text-align:right;
+}
+.bl_w_btmL {
+    background:url(../img/helper/balloon_w_bt2.png);
+    width:538px;
+    height:49px;
+    text-align:right;
+}
+.bl_w_btmR {
+    background:url(../img/helper/balloon_w_bt3.png);
+    width:538px;
+    height:49px;
+    text-align:right;
+}
+.balloon p.Title,
+.balloon_wide p.Title {
+    border-left:5px solid #7f7f7f;
+    padding:0 5px;
+    margin:0 0 10px 0;
+    font-weight:bold;
+    text-align:left;
+}
+.bl_btm .close, .bl_btmL .close, .bl_btmR .close,
+.bl_w_btm .close, .bl_w_btmL .close, .bl_w_btmR .close {
+    padding:3px 13px 0 10px;
+}
+
+.balloon p,
+.balloon_wide p {
+    color:#333333;
+    margin:0;
+    padding:0px 0 10px 0;
+}
+.balloon p.caption,
+.balloon_wide p.caption {
+    font-size:81%;
+    padding:0px 0 0px 0;
+}
+/* 解説アイコン 140403 sm11 */
+.explainIcn {
+    margin-bottom: -3px;
+    bottom: 1px;
+    margin-left: 4px;
+}
+
+
+/*テーブル用スタイル*/
+.bl_mid table.specList,
+.bl_w_mid table.specList {
+    border-left:1px solid #ababab;
+    border-bottom:1px solid #ababab;
+    border-collapse:collapse;
+    border-spacing:0;
+    width:300px;
+    margin-bottom:10px;
+}
+
+.bl_mid table.specList th,
+.bl_w_mid table.specList th {
+    background:#E5ECF0;
+}
+
+.bl_mid table.specList th, .bl_mid table.specList td,
+.bl_w_mid table.specList th, .bl_w_mid table.specList td {
+    border-right:1px solid #ababab;
+    border-top:1px solid #ababab;
+    padding:2px 4px 4px 4px;
+    text-align:center;
+}
+
+/* 2カラム対応 */
+.balloonCol2 div {
+    float:left;
+    width:250px;
+}
+.balloonCol2 div.right {
+    margin-left:15px;
+}
+/* 画像表示対応 */
+.balloon p.useImage .img,
+.balloon_wide p.useImage .img {
+    display:block;
+    float:left;
+    width:60px;
+}
+.balloon p.useImage .txt,
+.balloon_wide p.useImage .txt {
+    display:block;
+    margin-left:70px;
+}
+
+/* リンク 130821 sm4 */
+.balloonLink {
+    font-size:81%;
+    line-height:1.2;
+}
+.balloonLink a {
+    background:url(../img/helper/balloon_arrow.gif) no-repeat 0 2px;
+    padding:0 0 0 8px;
+}
