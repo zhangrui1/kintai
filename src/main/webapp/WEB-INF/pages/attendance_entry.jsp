@@ -27,10 +27,9 @@
             opacity: 1;
             pointer-events: auto;
         }
-        .in-progress {
-            background-color: #fef3c7; /* yellow-100 */
-            font-style: italic;
-        }
+        tr.in-progress { background-color: #fff7b0; }   /* 黄色：進行中 */
+        tr.auto-complete { background-color: #e5e7eb; } /* 灰色：自動完結 */
+        tr.complete { background-color: #ffffff; }      /* 白：完了済み */
     </style>
 </head>
 
@@ -209,7 +208,8 @@
         "平山 裕樹","宇都宮 朗","喜馬 大佑","髙岩 沢也","雅"];
     const list = document.getElementById("entryList");
     let activeEmployees = JSON.parse(localStorage.getItem("activeEmployees")||"{}");
-
+    const DEFAULT_MOVE_TIME = 45; // デフォルト移動時間（分）
+    const managerName = "宮本 義史";
     /* --- 初期表示 --- */
     window.addEventListener("DOMContentLoaded",()=>{
         loadTeams();
@@ -218,9 +218,49 @@
         const today=new Date();
         const yyyy=today.getFullYear(),mm=String(today.getMonth()+1).padStart(2,"0"),dd=String(today.getDate()).padStart(2,"0");
         const todayStr = yyyy + "-" + mm + "-" + dd;
+        // === すべての当日レコードを読み込み ===
         const all=JSON.parse(localStorage.getItem("attendanceRecords")||"[]");
-        all.filter(r=>r.date===todayStr).forEach(r=>addRowNew(r,false));
-        for(const emp in activeEmployees){(activeEmployees[emp],true);}
+        const activeEmployees = JSON.parse(localStorage.getItem("activeEmployees") || "{}");
+        // ✅ 今日の全レコード（この責任者の管理分）
+        const todaysRecords = all.filter(r =>
+            r.date === todayStr && r.manager === managerName // ←責任者の名前
+        );
+        // === 1. 今日の記録をすべて表示 ===
+        todaysRecords.forEach(r => {
+            const inProgress = (!r.end || r.end === "-");
+            addRowNew(r, inProgress);
+        });
+        // === activeEmployees に残っている進行中データを補完表示 ===
+        for (const emp in activeEmployees) {
+            const a = activeEmployees[emp];
+
+            // 既に上で表示済みならスキップ
+            const alreadyShown = todaysRecords.some(r =>
+                r.emp === emp &&
+                r.date === todayStr &&
+                (!r.end || r.end === "-")
+            );
+            if (alreadyShown) continue;
+            const rec = {
+                date: todayStr,
+                emp: emp,
+                site: a.site || "",
+                proj: a.proj || "",
+                start: a.start || "-",
+                end: "-",
+                duration: 0,
+                stay: a.stay || false,
+                hotel: a.hotel || "",
+                type: "作業",
+                moveIn: a.moveIn || false,
+                moveInTime: a.moveInTime || 0,
+                moveBetween: a.moveBetween || false,
+                moveBetweenTime: a.moveBetweenTime || 0,
+                moveOut: a.moveOut || false,
+                moveOutTime: a.moveOutTime || 0
+            };
+            addRowNew(rec, true); // ✅ 第二引数 true → 黄色背景付与
+        }
     });
 
     // ====== 時間ユーティリティ ======
@@ -234,10 +274,20 @@
     function addMinutes(h, m, min) { let t = h * 60 + m + min; if (t >= 1440) t -= 1440; return { h: Math.floor(t / 60), m: t % 60 }; }
     function subtractMinutes(h, m, min) { let t = h * 60 + m - min; if (t < 0) t += 1440; return { h: Math.floor(t / 60), m: t % 60 }; }
     function getStandardTravelTime(t) {
-        if (["hq_to_site", "site_to_hq"].includes(t)) return 45;
-        if (t === "site_to_site") return 30;
+        if (["hq_to_site", "site_to_hq"].includes(t)) return DEFAULT_MOVE_TIME;
+        if (t === "site_to_site") return DEFAULT_MOVE_TIME;
         return 0;
     }
+    /* --- 日付自動設定 --- */
+    function todayStr() {
+        const d = new Date();
+        var temp = d.getFullYear() + "-" +
+            String(d.getMonth() + 1).padStart(2, "0") + "-" +
+            String(d.getDate()).padStart(2, "0");
+        console.log("今日の日付＝ " + temp);
+        return temp;
+    }
+
     // ====== 表制御 ======
     let seq = 1;
     function sortEntryList() {
@@ -251,19 +301,6 @@
         });
         rows.forEach((r, i) => { r.children[0].textContent = i + 1; list.appendChild(r); });
     }
-
-
-
-    /* --- 日付自動設定 --- */
-    function todayStr() {
-        const d = new Date();
-        var temp = d.getFullYear() + "-" +
-            String(d.getMonth() + 1).padStart(2, "0") + "-" +
-            String(d.getDate()).padStart(2, "0");
-        console.log("今日の日付＝ " + temp);
-        return temp;
-    }
-
     document.getElementById("workDate").value=todayStr();
 
 
@@ -380,9 +417,19 @@
         if (!e.target.checked) document.getElementById("hotelName").value = "";
     };
 
-    /* --- 表示関数 --- */
-    function addRow(date, emp, site, proj, type, start, end, dur, hotel, stay) {
+    // ==========================
+    // ✅ 表示関数（addRow / addRowNew）
+    // ==========================
+    function addRow(date, emp, site, proj, type, start, end, dur, hotel, stay, flags = {}) {
         const tr = document.createElement("tr");
+        const seq = list.children.length + 1;
+        tr.className = flags.inProgress ? "in-progress" : "";
+
+        const moveText = [];
+        if (flags.moveIn) moveText.push("本社→現場(" + flags.moveInTime + "分)");
+        if (flags.moveBetween) moveText.push("現場→現場(" + flags.moveBetweenTime + "分)");
+        if (flags.moveOut) moveText.push("現場→本社(" + flags.moveOutTime + "分)");
+
         tr.innerHTML =
             "<td class='border text-center'>" + seq + "</td>" +
             "<td class='border text-center'>" + date + "</td>" +
@@ -394,43 +441,44 @@
             "<td class='border text-center end-time'>" + end + "</td>" +
             "<td class='border text-center duration'>" + (dur ? dur + "分" : "-") + "</td>" +
             "<td class='border'>" + (stay ? (hotel || "宿泊あり") : "-") + "</td>" +
+            "<td class='border text-xs text-gray-600'>" + (moveText.join("<br>") || "-") + "</td>" +
             "<td class='border text-center'><button class='text-red-600'>削除</button></td>";
-        // ✅ 削除ボタン処理
-        tr.querySelector("button").onclick = function() {
-            // 1. 画面から削除
+
+        // 削除ボタン
+        tr.querySelector("button").onclick = function () {
+            if (!confirm("本当に削除しますか？")) return;
             tr.remove();
-
-            // 2. localStorageから削除
             const all = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
-
-            // 一意性を保つため複数条件で一致チェック（必要に応じてカスタマイズ）
             const filtered = all.filter(r =>
-                !(
-                    r.date === date &&
-                    r.emp === emp &&
-                    r.site === site &&
-                    r.proj === proj &&
-                    r.type === type &&
-                    r.start === start &&
-                    r.end === end
-                )
+                !(r.date === date && r.emp === emp && r.site === site &&
+                    r.proj === proj && r.type === type && r.start === start && r.end === end)
             );
-
-            // 3. 保存し直す
             localStorage.setItem("attendanceRecords", JSON.stringify(filtered));
-            console.log("削除完了:", date, emp, site, proj, type, start);
+            console.log("🗑 削除完了:", date, emp, type);
         };
+
         list.appendChild(tr);
-        sortEntryList();
         return tr;
     }
 
-    /* --- 表示関数（新） --- */
     function addRowNew(r, inProgress = false) {
         const tr = document.createElement("tr");
-        if (inProgress) tr.classList.add("in-progress");
+        // 背景色設定
+        if (inProgress) {
+            tr.classList.add("in-progress"); // 黄色：進行中
+        } else if (r.type === "移動のみ") {
+            tr.classList.add("auto-complete"); // 灰色：自動完結
+        } else {
+            tr.classList.add("complete"); // 白：完了済み
+        }
+
+        const moveText = [];
+        if (r.moveIn) moveText.push("本社→現場(" + (r.moveInTime || 0) + "分)");
+        if (r.moveBetween) moveText.push("現場→現場(" + (r.moveBetweenTime || 0) + "分)");
+        if (r.moveOut) moveText.push("現場→本社(" + (r.moveOutTime || 0) + "分)");
+
         tr.innerHTML =
-            "<td class='border text-center'>" + (entryList.children.length + 1) + "</td>" +
+            "<td class='border text-center'>" + (list.children.length + 1) + "</td>" +
             "<td class='border text-center'>" + r.date + "</td>" +
             "<td class='border'>" + r.emp + "</td>" +
             "<td class='border'>" + r.site + "</td>" +
@@ -440,36 +488,23 @@
             "<td class='border text-center end-time'>" + r.end + "</td>" +
             "<td class='border text-center duration'>" + (r.duration ? r.duration + "分" : "-") + "</td>" +
             "<td class='border'>" + (r.stay ? (r.hotel || "宿泊あり") : "-") + "</td>" +
+            "<td class='border text-xs text-gray-600'>" + (moveText.join("<br>") || "-") + "</td>" +
             "<td class='border text-center'><button class='text-red-600'>削除</button></td>";
-        // ✅ 削除ボタン処理を追加
+
         tr.querySelector("button").onclick = function () {
-            // ① 表示上から削除
+            if (!confirm("本当に削除しますか？")) return;
             tr.remove();
-
-            // ② localStorageから削除
             const all = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
-
-            // 該当レコードを除外
             const filtered = all.filter(x =>
-                !(
-                    x.date === r.date &&
-                    x.emp === r.emp &&
-                    x.site === r.site &&
-                    x.proj === r.proj &&
-                    x.type === r.type &&
-                    x.start === r.start &&
-                    x.end === r.end
-                )
+                !(x.date === r.date && x.emp === r.emp && x.site === r.site &&
+                    x.proj === r.proj && x.type === r.type && x.start === r.start && x.end === r.end)
             );
-
-            // ③ localStorageへ再保存
             localStorage.setItem("attendanceRecords", JSON.stringify(filtered));
-            console.log("削除完了:", r.date, r.emp, r.site, r.proj);
+            console.log("🗑 削除完了:", r.date, r.emp, r.type);
         };
-        list.appendChild(tr);
-        sortEntryList();
-    }
 
+        list.appendChild(tr);
+    }
 
     function saveRecordToLocal(emp, site, proj, type, start, end, duration, stay, hotel, manager) {
         const data = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
@@ -489,7 +524,7 @@
     /* --- 責任者⇄一般切替 --- */
     let currentUserName=localStorage.getItem("userName")||"宮本 義史";
     let userRole=localStorage.getItem("userRole")||(currentUserName==="宮本 義史"?"manager":"staff");
-    const managerName="宮本 義史";
+
 
     function applyRole(){
         const roleBtn=document.getElementById("roleSwitchBtn");
@@ -535,126 +570,155 @@
         const site = document.getElementById("siteSelect").value;
         const proj = document.getElementById("projectSelect").value;
         const stay = document.getElementById("stayCheck").checked;
-        const hotel = document.getElementById("hotelName").value;
+        const hotelInput = document.getElementById("hotelName").value.trim(); // 入力値（空なら"宿泊あり"）
+        const hotel = stay ? (hotelInput || "宿泊あり") : "-";       // ✅ 表示用ホテル名
         const now = getCurrentTime();
-        console.log("now time="+ JSON.stringify(now));
         const start = formatTime(now.h, now.m);
+        console.log("stay= "+stay);
 
         employees.forEach(emp => {
             if (activeEmployees[emp]) return alert( emp+`さんはすでに開始済みです。`);
-            const baseRecord = {
-                date, emp, site, proj, start, end: "-", duration: 0,
-                stay: stay ? (hotel || "宿泊あり") : "-",
-                moveIn: moveTypes.includes("hq_to_site"),
-                moveInTime: moveTypes.includes("hq_to_site") ? getStandardTravelTime("hq_to_site") : 0,
-                moveOut: moveTypes.includes("site_to_hq"),
-                moveOutTime: moveTypes.includes("site_to_hq") ? getStandardTravelTime("site_to_hq") : 0,
-                manager: "宮本 義史"
-            };
-
-            if (moveTypes.includes("hq_to_site")) {
-                const min = getStandardTravelTime("hq_to_site");
-                const moveStart = subtractMinutes(now.h, now.m, min);
-                addRow(date, emp, site, proj, "移動(本社→現場)", "-", "-", 45, hotel, stay);
-                saveRecordToLocal(emp, site, proj, "移動(本社→現場)", "-", "-", 45, stay, hotel, managerName);
-            }
-
+            // === 作業あり（通常パターン） ===
             if (hasWork === "yes") {
-                addRow(date, emp, site, proj, "作業", start, "-", 0, hotel, stay);
-                saveRecordToLocal(emp, site, proj, "作業", start, "-", 0, stay, hotel, managerName);
-            } else {
-                addRow(date, emp, site, proj, "移動のみ", start, "-", 0, hotel, stay);
-                saveRecordToLocal(emp, site, proj, "移動のみ", start, "-", 0, stay, hotel, managerName);
+                const rec = {
+                    date, emp, site, proj,
+                    start, end: "-", duration: 0,
+                    stay, hotel,
+                    moveIn: moveTypes.includes("hq_to_site"),
+                    moveInTime: moveTypes.includes("hq_to_site") ? getStandardTravelTime("hq_to_site") : 0,
+                    moveBetween: moveTypes.includes("site_to_site"),
+                    moveBetweenTime: moveTypes.includes("site_to_site") ? getStandardTravelTime("site_to_site") : 0,
+                    moveOut: moveTypes.includes("site_to_hq"),
+                    moveOutTime: moveTypes.includes("site_to_hq") ? getStandardTravelTime("site_to_hq") : 0,
+                    type: "作業",
+                    manager: managerName
+                };
+
+                saveAttendanceRecord(rec);
+                addRowNew(rec, true); // 進行中（in-progress）
+                activeEmployees[emp] = rec;
+                localStorage.setItem("activeEmployees", JSON.stringify(activeEmployees));
+
+                console.log("▶ 作業開始:", emp, start);
+            }            // === 作業なし（移動のみ or 宿泊のみ）===
+            else {
+                const baseMinutes = getStandardTravelTime("hq_to_site"); // デフォルト45分
+                const endObj = addMinutes(now.h, now.m, baseMinutes);
+                const end = formatTime(endObj.h, endObj.m);
+
+                const rec = {
+                    date, emp, site, proj,
+                    start, end, duration: baseMinutes,
+                    stay, hotel,
+                    moveIn: moveTypes.includes("hq_to_site"),
+                    moveInTime: moveTypes.includes("hq_to_site") ? baseMinutes : 0,
+                    moveBetween: moveTypes.includes("site_to_site"),
+                    moveBetweenTime: moveTypes.includes("site_to_site") ? baseMinutes : 0,
+                    moveOut: moveTypes.includes("site_to_hq"),
+                    moveOutTime: moveTypes.includes("site_to_hq") ? baseMinutes : 0,
+                    type: "移動のみ",
+                    manager: managerName
+                };
+
+                saveAttendanceRecord(rec);
+                addRowNew(rec, false); // 完了済みなのでin-progress不要
+
+                console.log("✅ 作業なしレコード完了:", emp, start, "→", end);
             }
 
-            if (moveTypes.includes("site_to_site")) {
-                const min = getStandardTravelTime("site_to_site");
-                const moveStart = subtractMinutes(now.h, now.m, min);
-                addRow(date, emp, site, proj, "移動(現場→現場)", formatTime(moveStart.h, moveStart.m), start, min, hotel, stay);
-                saveRecordToLocal(emp, site, proj, "移動(現場→現場)", formatTime(moveStart.h, moveStart.m), start, min, stay, hotel, managerName);
-            }
-              //宿泊の行を表示しないように変更
-            // if (stay) {
-            //     addRow(date, emp, site, proj, "宿泊", "-", "-", 0, hotel, stay);
-            //     saveRecordToLocal(emp, site, proj, "宿泊", "-", "-", 0, stay, hotel, managerName);
-            // }
-
-
-            activeEmployees[emp] = { start, site, proj, stay, hotel, manager: managerName };
-            localStorage.setItem("activeEmployees", JSON.stringify(activeEmployees));
         });
     };
-
-
-
-
 
     // ====== 終了処理 ======
     document.getElementById("btnEnd").onclick = () => {
         const employees = getSelectedEmployees();
         if (!employees.length) return alert("終了する社員を選択してください。");
+
         const moveTypesNow = [...document.querySelectorAll('input[name="moveType"]:checked')].map(e => e.value);
         const now = getCurrentTime();
         const end = formatTime(now.h, now.m);
         const stayChecked = document.getElementById("stayCheck").checked;
         const hotelName = document.getElementById("hotelName").value;
+        const date = document.getElementById("workDate").value;
 
         employees.forEach(emp => {
-            const rec = activeEmployees[emp];
-            if (!rec) return alert(emp+` さんは開始されていません。`);
+            const active = activeEmployees[emp];
+            if (!active) return alert(emp + " さんは開始されていません。");
 
-            // 作業行を終了
+            // ✅ localStorageの全レコード取得
+            const records = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
+
+            // ✅ 未終了レコード（end が "-" または空）の中で最新のものを探す
+            const idx = records
+                .map((r, i) => ({...r, _i: i}))
+                .filter(r => r.emp === emp && r.date === date && (!r.end || r.end === "-"))
+                .sort((a, b) => timeToMinutes(b.start) - timeToMinutes(a.start))[0]?._i;
+
+            if (idx === undefined) {
+                alert(emp + " さんの未終了レコードが見つかりません。");
+                return;
+            }
+
+            // ✅ レコード更新
+            const rec = records[idx];
+            rec.end = end;
+            rec.duration = calcDuration(rec.start, end);
+
+            // ✅ 現場→本社 の移動チェック
+            rec.moveOut = moveTypesNow.includes("site_to_hq");
+            rec.moveOutTime = rec.moveOut ? DEFAULT_MOVE_TIME : 0;
+
+            // ✅ 宿泊状態反映
+            rec.stay = stayChecked;
+            rec.hotel = stayChecked ? (hotelName || "宿泊あり") : "-";
+
+            // ✅ 上書き保存
+            records[idx] = rec;
+            localStorage.setItem("attendanceRecords", JSON.stringify(records));
+
+            // ✅ 画面側の該当行を更新
             const tr = [...list.querySelectorAll("tr")].find(r =>
                 r.children[2].textContent === emp &&
-                r.children[5].textContent === "作業" &&
+                r.children[5].textContent === rec.type &&
                 r.querySelector(".end-time").textContent === "-"
             );
             if (tr) {
                 tr.querySelector(".end-time").textContent = end;
                 const s = tr.querySelector(".start-time").textContent;
                 tr.querySelector(".duration").textContent = calcDuration(s, end) + "分";
+                tr.classList.remove("in-progress");
             }
 
-            // 現場→本社
-            if (moveTypesNow.includes("site_to_hq")) {
-                const min = getStandardTravelTime("site_to_hq");
-                const moveEnd = addMinutes(now.h, now.m, min);
-                addRow(date, emp, rec.site, rec.proj, "移動(現場→本社)",  "-", "-", 45, min, rec.hotel, rec.stay);
-                saveRecordToLocal(emp, rec.site, rec.proj, "移動(現場→本社)",  "-", "-", 45, rec.stay, rec.hotel, managerName);
-            }
-
-            // 宿泊反映（終了時）
-            const existingStay = [...document.querySelectorAll("#entryList tr")].find(
-                r => r.children[2].textContent === emp && r.children[5].textContent === "宿泊"
-            );
-
-            if (stayChecked && !existingStay) {
-                addRow(document.getElementById("workDate").value, emp, rec.site, rec.proj, "宿泊", "-", "-", 0, hotelName, true);
-                saveRecordToLocal(emp, rec.site, rec.proj, "宿泊", "-", "-", 0, true, hotelName, managerName);
-            } else if (!stayChecked && existingStay) {
-                existingStay.remove();
-            }
-
-
+            // ✅ activeから削除
             delete activeEmployees[emp];
-            // ✅ 終了時、localStorage内の該当レコード更新
-            const records = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
-            const recIndex = records.findIndex(r => r.emp === emp && r.date === document.getElementById("workDate").value && r.type === "作業");
-            if (recIndex !== -1) {
-                records[recIndex].end = end;
-                records[recIndex].duration = calcDuration(records[recIndex].start, end);
-            }
-            localStorage.setItem("attendanceRecords", JSON.stringify(records));
+            localStorage.setItem("activeEmployees", JSON.stringify(activeEmployees));
 
+            console.log("✅ 終了更新:", emp, rec.date, rec.type, "→", rec.duration + "分");
         });
     };
 
     // ✅ localStorage に保存する関数
-    function saveAttendanceRecord(record) {
-        const records = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
-        records.push(record);
-        localStorage.setItem("attendanceRecords", JSON.stringify(records));
-        console.log("保存:", record);
+    function saveAttendanceRecord(newData) {
+        let all = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
+
+        // === 未終了チェック ===
+        const unfinished = all.find(r =>
+            r.emp === newData.emp &&
+            r.date === newData.date &&
+            (!r.end || r.end === "-" || r.duration === 0)
+        );
+
+        if (unfinished) {
+            alert("⚠️ 「" + newData.emp + "」さんの未終了レコードがあります。終了してから新しい作業を開始してください。");
+            console.warn("未終了レコード:", unfinished);
+            return false; // 保存中止
+        }
+
+        // === 正常登録 ===
+        all.push(newData);
+        localStorage.setItem("attendanceRecords", JSON.stringify(all));
+        console.log("保存完了:", newData.emp, newData.date, newData.type);
+        return true;
     }
 
 

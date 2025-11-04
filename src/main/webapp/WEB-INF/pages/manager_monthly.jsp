@@ -1,25 +1,51 @@
 <!DOCTYPE html>
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ page pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <html lang="ja">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>責任者用 月次作業一覧（宮本 義史 管理）</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/kintai/js/commonFunction.js"></script>
     <style>
         .sunday { color: red; font-weight: bold; }
         .holiday { color: red; font-weight: bold; } /* 会社指定休日用：将来ここに適用 */
         table { table-layout: auto; width: 100%; }
         th, td { white-space: nowrap; }
         .subrow { background: #fafafa; }
+        tr.in-progress { background-color: #fff7b0 !important; }   /* 進行中：黄色 */
+        tr.auto-complete { background-color: #e5e7eb !important; } /* 自動完結：灰色 */
+        tr.complete { background-color: #ffffff !important; }      /* 完了済：白 */
+        /* ✅ 左メニューiframe */
+        iframe.menu-frame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 60px;
+            height: 100vh;
+            border: none;
+            transition: width 0.3s ease;
+            z-index: 50;
+        }
+        iframe.menu-frame:hover {
+            width: 240px;
+        }
+
+        main {
+            margin-left: 60px;
+            transition: margin-left 0.3s ease;
+        }
+        iframe.menu-frame:hover + main {
+            margin-left: 240px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex min-h-screen">
 <!-- ✅ 左メニュー -->
-<%--<iframe src="menu.html"--%>
-<%--        class="fixed top-0 left-0 border-none w-[60px] h-screen hover:w-[240px] transition-all duration-300 z-50"></iframe>--%>
-
+<%--<iframe src="htmlframe/leftFrame.jsp" class="menu-frame"></iframe>--%>
+<%--<c:import url="htmlframe/leftFrame.jsp"/>--%>
 
 <!-- ✅ メインコンテンツ -->
 <main class="flex-1 p-6 bg-white overflow-x-auto ml-[60px] transition-all duration-300">
@@ -81,13 +107,16 @@
                 <th class="border px-3 py-1">現場名</th>
                 <th class="border px-3 py-1">本社→現場</th>
                 <th class="border px-3 py-1">現場→本社</th>
+                <th class="border px-3 py-1">現場→現場</th>
                 <th class="border px-3 py-1">案件番号</th>
                 <th class="border px-3 py-1">区分</th>
                 <th class="border px-3 py-1">実打刻出勤</th>
                 <th class="border px-3 py-1">実打刻退勤</th>
                 <th class="border px-3 py-1">勤怠出勤</th>
                 <th class="border px-3 py-1">勤怠退勤</th>
-                <th class="border px-3 py-1">実績時間</th>
+                <th class="border px-3 py-1">移動時間</th>   <!-- ✅ 追加 -->
+                <th class="border px-3 py-1">作業時間</th>   <!-- ✅ 追加 -->
+                <th class="border px-3 py-1">合計</th>
                 <th class="border px-3 py-1">宿泊</th>
                 <th class="border px-3 py-1 w-48">メモ</th>
                 <th class="border px-3 py-1">確認</th>
@@ -97,7 +126,6 @@
             </thead>
             <tbody id="listBody"></tbody>
         </table>
-    </div>
     </div>
 </main>
 <script>
@@ -201,7 +229,9 @@
             if (hrs > 6) hrs -= 1; // 6時間超は1時間休憩
             return { adjStart, adjEnd, hrs };
         }
-
+        function roundHour(val) {
+            return Math.round(val * 100) / 100; // 小数第2位まで正確に丸め
+        }
         // 1行描画
         function appendRow(rec, subtotalCellRef = null) {
             const { dayName, isSunday } = getDayInfo(rec.date);
@@ -209,7 +239,39 @@
 
             const tr = document.createElement("tr");
             tr.className = "text-center";
+            // 🔸 状態別背景色（ここを追加）
+            if (!rec.end || rec.end === "-") {
+                tr.classList.add("in-progress");     // 打刻中：黄色
+            } else if (rec.type === "移動のみ") {
+                tr.classList.add("auto-complete");   // 自動完結：灰色
+            } else {
+                tr.classList.add("complete");        // 完了済み：白
+            }
+
             const dateClass = isSunday ? "sunday" : "";
+
+            // 🔸 移動のみの場合の特別表示
+            const isMoveOnly = rec.type === "移動のみ";
+            const displayStart = (rec.start || "");
+            const displayEnd = isMoveOnly ? "-" : (rec.end || "");
+            const displayDuration =  (hrs ? hrs.toFixed(1)  : "-");
+            // ===== 各種時間の算出 =====
+            const moveMin =
+                (rec.moveIn ? (rec.moveInTime || 0) : 0) +
+                (rec.moveBetween ? (rec.moveBetweenTime || 0) : 0) +
+                (rec.moveOut ? (rec.moveOutTime || 0) : 0);
+
+            var moveHrs = moveMin ? roundHour(moveMin / 60) : 0; // 移動時間（h）
+            // 勤怠出勤・退勤ベースで作業時間算出
+            var workHrs = 0;
+            if (adjStart && adjEnd && !isMoveOnly) {
+                let diff = timeToMin(adjEnd) - timeToMin(adjStart);
+                if (diff < 0) diff += 1440;
+                let hrs = diff / 60;
+                if (hrs > 6) hrs -= 1;
+                workHrs= roundHour(hrs);
+            }
+            var totalHrs = roundHour(workHrs + moveHrs);
 
             tr.innerHTML =
                 "<td class='border px-3 py-1 " + dateClass + "'>" + rec.date + "(" + dayName + ")</td>" +
@@ -217,13 +279,16 @@
                 "<td class='border px-3 py-1'>" + (rec.site || "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (rec.moveIn ? "〇(" + (rec.moveInTime || 0) + "分)" : "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (rec.moveOut ? "〇(" + (rec.moveOutTime || 0) + "分)" : "") + "</td>" +
+                "<td class='border px-3 py-1'>" + (rec.moveBetween ? "〇(" + (rec.moveBetweenTime || 0) + "分)" : "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (rec.proj || "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (rec.type || "") + "</td>" +
-                "<td class='border px-3 py-1'>" + (rec.start || "") + "</td>" +
-                "<td class='border px-3 py-1'>" + (rec.end || "") + "</td>" +
+                "<td class='border px-3 py-1'>" + displayStart  + "</td>" +
+                "<td class='border px-3 py-1'>" + displayEnd  + "</td>" +
                 "<td class='border px-3 py-1'><input type='time' class='border rounded px-1 text-center adjustedStart' value='" + (adjStart || "") + "'></td>" +
                 "<td class='border px-3 py-1'><input type='time' class='border rounded px-1 text-center adjustedEnd' value='" + (adjEnd || "") + "'></td>" +
-                "<td class='border px-3 py-1 durationCell'>" + (hrs ? hrs.toFixed(1) + "時間" : "-") + "</td>" +
+                "<td class='border px-3 py-1 durationCell'>" + moveHrs  + "</td>" +
+                "<td class='border px-3 py-1 durationCell'>" + workHrs  + "</td>" +
+                "<td class='border px-3 py-1 durationCell'>" + totalHrs  + "</td>" +
                 "<td class='border px-3 py-1'>" + (rec.stay || "-") + "</td>" +
                 "<td class='border px-3 py-1'><input type='text' class='border rounded px-1 w-full memoInput' value='" + (rec.memo || "") + "'></td>" +
                 "<td class='border px-3 py-1'><input type='checkbox' class='confirmCheck' " + (rec.confirmed ? "checked" : "") + "></td>" +
@@ -286,19 +351,7 @@
                 });
 
                 // 日別小計
-                const subtotal = sortedList.reduce(function(sum, rec) {
-                    const hrsObj = calcAdjustedHours(rec);
-                    const hrs = hrsObj.hrs;
-                    return sum + (hrs || 0);
-                }, 0);
-
-                const foot = document.createElement("tr");
-                foot.className = "subrow";
-                foot.innerHTML =
-                    "<td colspan='11' class='border px-3 py-1 text-right'>⤵ " + date + " 合計</td>" +
-                    "<td class='border px-3 py-1 font-semibold'>" + subtotal.toFixed(1) + "時間</td>" +
-                    "<td colspan='4' class='border px-3 py-1'></td>";
-                tbody.appendChild(foot);
+                appendSubtotalRow(tbody, date, sortedList);
             });
         }
 
@@ -326,16 +379,7 @@
                 rows.forEach(r => appendRow(r));
 
                 // 社員別の小計行
-                const subtotal = rows.reduce((sum, rec)=>{
-                    const { hrs } = calcAdjustedHours(rec);
-                    return sum + (hrs || 0);
-                }, 0);
-                const foot = document.createElement("tr");
-                foot.className = "subrow";
-                foot.innerHTML = "<td colspan='11' class='border px-3 py-1 text-right'>⤵ " + emp + " 小計</td>" +
-                "<td class='border px-3 py-1 font-semibold'>" + subtotal.toFixed(1) + "時間</td>" +
-                "<td colspan='4' class='border px-3 py-1'></td>";
-                tbody.appendChild(foot);
+                appendSubtotalRow(tbody, emp, rows);
             });
         }
 

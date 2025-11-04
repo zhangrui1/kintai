@@ -1,25 +1,52 @@
 <!DOCTYPE html>
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ page pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/kintai/js/commonFunction.js"></script>
+<style>
+    .sunday { color: red; font-weight: bold; }
+    .holiday { color: red; font-weight: bold; }
+    table { table-layout: auto; width: 100%; }
+    th, td { white-space: nowrap; }
+    tr.in-progress { background-color: #fff7b0 !important; }   /* 進行中：黄色 */
+    tr.auto-complete { background-color: #e5e7eb !important; } /* 自動完結：灰色 */
+    tr.complete { background-color: #ffffff !important; }      /* 完了済：白 */
+    /* ✅ 左メニューiframe */
+    iframe.menu-frame {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 60px;
+        height: 100vh;
+        border: none;
+        transition: width 0.3s ease;
+        z-index: 50;
+    }
+    iframe.menu-frame:hover {
+        width: 240px;
+    }
+
+    main {
+        margin-left: 60px;
+        transition: margin-left 0.3s ease;
+    }
+    iframe.menu-frame:hover + main {
+        margin-left: 240px;
+    }
+</style>
 <html lang="ja">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>月次作業一覧</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .sunday { color: red; font-weight: bold; }
-        .holiday { color: red; font-weight: bold; }
-        table { table-layout: auto; width: 100%; }
-        th, td { white-space: nowrap; }
-    </style>
+
 </head>
 
 <body class="bg-gray-100 flex min-h-screen">
 <!-- ✅ 左メニュー -->
-<%--<iframe src="menu.html"--%>
-<%--        class="fixed top-0 left-0 border-none w-[60px] h-screen hover:w-[240px] transition-all duration-300 z-50"></iframe>--%>
-
+<%--<iframe src="htmlframe/leftFrame.jsp" class="menu-frame"></iframe>--%>
+<%--<c:import url="htmlframe/leftFrame.jsp"/>--%>
 <!-- ✅ メインコンテンツ -->
 <main class="flex-1 p-6 bg-white overflow-x-auto ml-[60px] transition-all duration-300">
     <div class="max-w-full mx-auto bg-white shadow rounded-2xl p-6 overflow-x-auto">
@@ -53,18 +80,22 @@
                 <thead class="bg-gray-200 text-center">
                 <tr>
                     <th class="border px-3 py-1">日付(曜日)</th>
+                    <th class="border px-3 py-1">社員名</th>
                     <th class="border px-3 py-1">現場名</th>
                     <th class="border px-3 py-1">本社→現場</th>
                     <th class="border px-3 py-1">現場→本社</th>
+                    <th class="border px-3 py-1">現場→現場</th>
                     <th class="border px-3 py-1">案件番号</th>
                     <th class="border px-3 py-1">区分</th>
                     <th class="border px-3 py-1">実打刻出勤</th>
                     <th class="border px-3 py-1">実打刻退勤</th>
                     <th class="border px-3 py-1">勤怠出勤</th>
                     <th class="border px-3 py-1">勤怠退勤</th>
-                    <th class="border px-3 py-1">実績時間</th>
+                    <th class="border px-3 py-1">移動時間</th>   <!-- ✅ 追加 -->
+                    <th class="border px-3 py-1">作業時間</th>   <!-- ✅ 追加 -->
+                    <th class="border px-3 py-1">合計</th>
                     <th class="border px-3 py-1">宿泊</th>
-                    <th class="border px-3 py-1 w-48">メモ</th>
+                    <th class="border px-3 py-1 w-48">備考</th>
                     <th class="border px-3 py-1">確認</th>
                     <th class="border px-3 py-1">確認者</th>
                     <th class="border px-3 py-1">確認日時</th>
@@ -74,9 +105,9 @@
             </table>
         </div>
 
-        <div class="text-right font-semibold mt-4">
-            調整後合計作業時間: <span id="totalTime">0</span> 時間
-        </div>
+<%--        <div class="text-right font-semibold mt-4">--%>
+<%--            調整後合計作業時間: <span id="totalTime">0</span> 時間--%>
+<%--        </div>--%>
     </div>
 </main>
 
@@ -123,7 +154,9 @@
             pad2(dt.getHours()) + ':' +
             pad2(dt.getMinutes());
     }
-
+    function roundHour(val) {
+        return Math.round(val * 100) / 100; // 小数第2位まで正確に丸め
+    }
     // ==== 表示 ====
     function renderMonthData(month, currentUserName) {
         const tbody = document.getElementById("monthList");
@@ -147,32 +180,57 @@
             const dayName = info.dayName;
             const isSunday = info.isSunday;
 
-            let adjustedDurationMin = 0;
-            if (adjStart && adjEnd) {
-                adjustedDurationMin = timeToMin(adjEnd) - timeToMin(adjStart);
-                if (adjustedDurationMin < 0) adjustedDurationMin += 1440;
-            }
-
-            let adjustedDurationHrs = adjustedDurationMin / 60;
-            if (adjustedDurationHrs > 6) adjustedDurationHrs -= 1;
-            total += adjustedDurationHrs;
-
             const tr = document.createElement("tr");
             tr.className = "text-center";
+            // 🔸 状態別背景色（ここを追加）
+            if (!d.end || d.end === "-") {
+                tr.classList.add("in-progress");     // 打刻中：黄色
+            } else if (d.type === "移動のみ") {
+                tr.classList.add("auto-complete");   // 自動完結：灰色
+            } else {
+                tr.classList.add("complete");        // 完了済み：白
+            }
             const dateCellClass = isSunday ? "sunday" : "";
+// 🔸 移動のみの場合の特別表示
+            const isMoveOnly = d.type === "移動のみ";
+            const displayStart = isMoveOnly ? "-" : (d.start || "");
+            const displayEnd = isMoveOnly ? "-" : (d.end || "");
+
+            // ===== 各種時間の算出 =====
+            const moveMin =
+                (d.moveIn ? (d.moveInTime || 0) : 0) +
+                (d.moveBetween ? (d.moveBetweenTime || 0) : 0) +
+                (d.moveOut ? (d.moveOutTime || 0) : 0);
+
+            var moveHrs = moveMin ? roundHour(moveMin / 60) : 0; // 移動時間（h）
+            // 勤怠出勤・退勤ベースで作業時間算出
+            var workHrs = 0;
+            if (adjStart && adjEnd && !isMoveOnly) {
+                let diff = timeToMin(adjEnd) - timeToMin(adjStart);
+                if (diff < 0) diff += 1440;
+                let hrs = diff / 60;
+                if (hrs > 6) hrs -= 1;
+                workHrs= roundHour(hrs);
+            }
+            var totalHrs = roundHour(workHrs + moveHrs);
+
 
             tr.innerHTML =
                 "<td class='border px-3 py-1 " + dateCellClass + "'>" + d.date + "(" + dayName + ")</td>" +
+                "<td class='border px-3 py-1'>" + d.emp + "</td>" +
                 "<td class='border px-3 py-1'>" + (d.site || "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (d.moveIn ? "〇(" + (d.moveInTime || 0) + "分)" : "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (d.moveOut ? "〇(" + (d.moveOutTime || 0) + "分)" : "") + "</td>" +
+                "<td class='border px-3 py-1'>" + (d.moveBetween ? "〇(" + (d.moveBetweenTime || 0) + "分)" : "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (d.proj || "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (d.type || "") + "</td>" +
-                "<td class='border px-3 py-1'>" + (d.start || "") + "</td>" +
-                "<td class='border px-3 py-1'>" + (d.end || "") + "</td>" +
+                "<td class='border px-3 py-1'>" + displayStart + "</td>" +
+                "<td class='border px-3 py-1'>" + displayEnd + "</td>" +
                 "<td class='border px-3 py-1'><input type='time' class='border rounded px-1 text-center adjustedStart' value='" + adjStart + "'></td>" +
                 "<td class='border px-3 py-1'><input type='time' class='border rounded px-1 text-center adjustedEnd' value='" + adjEnd + "'></td>" +
-                "<td class='border px-3 py-1 durationCell'>" + (adjustedDurationHrs ? adjustedDurationHrs.toFixed(1) + "時間" : "-") + "</td>" +
+                "<td class='border px-3 py-1 durationCell'>" + moveHrs  + "</td>" +
+                "<td class='border px-3 py-1 durationCell'>" + workHrs  + "</td>" +
+                "<td class='border px-3 py-1 durationCell'>" + totalHrs  + "</td>" +
                 "<td class='border px-3 py-1'>" + (d.stay || "-") + "</td>" +
                 "<td class='border px-3 py-1'><input type='text' class='border rounded px-1 w-full memoInput' value='" + (d.memo || "") + "'></td>" +
                 "<td class='border px-3 py-1'><input type='checkbox' class='confirmCheck' " + (d.confirmed ? "checked" : "") + "></td>" +
@@ -183,7 +241,8 @@
         });
 
 
-        document.getElementById("totalTime").textContent = total.toFixed(1);
+        // 日別小計
+        appendSubtotalRow(tbody, "合計", myData);
     }
 
     // ==== 月切替 ====
