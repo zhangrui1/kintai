@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>現場作業入力</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
+    <script src="/kintai/js/commonFunction.js"></script>
     <style>
         /* ℹ️ 共通ツールチップ修正版 */
         .tooltip {
@@ -595,6 +595,7 @@
                 };
 
                 saveAttendanceRecord(rec);
+                syncToMonthlyRecords(rec); // ✅ ← これを追加
                 addRowNew(rec, true); // 進行中（in-progress）
                 activeEmployees[emp] = rec;
                 localStorage.setItem("activeEmployees", JSON.stringify(activeEmployees));
@@ -621,6 +622,7 @@
                 };
 
                 saveAttendanceRecord(rec);
+                syncToMonthlyRecords(rec); // ✅ ← これを追加
                 addRowNew(rec, false); // 完了済みなのでin-progress不要
 
                 console.log("✅ 作業なしレコード完了:", emp, start, "→", end);
@@ -675,6 +677,7 @@
             // ✅ 上書き保存
             records[idx] = rec;
             localStorage.setItem("attendanceRecords", JSON.stringify(records));
+            syncToMonthlyRecords(rec); // ✅ ← 終了時も反映（丸めして保存）
 
             // ✅ 画面側の該当行を更新
             const tr = [...list.querySelectorAll("tr")].find(r =>
@@ -721,6 +724,41 @@
         return true;
     }
 
+    // ===== monthlyRecords 同期（開始・終了共通） =====
+    function syncToMonthlyRecords(rec) {
+        const monthly = JSON.parse(localStorage.getItem("monthlyRecords") || "[]");
+
+        // 🔹 丸め
+        const adjStart = roundTo15Up(rec.start);
+        const adjEnd = rec.end && rec.end !== "-" ? roundTo15Down(rec.end) : "";
+
+        // 🔹 複数レコード対応（同日・同現場・同案件でも別登録）
+        const keyFields = ["emp", "date", "site", "proj", "start"];
+        const isSameRec = (r1, r2) =>
+            keyFields.every(k => (r1[k] || "") === (r2[k] || ""));
+
+        const idx = monthly.findIndex(r => isSameRec(r, rec));
+
+        const newRec = {
+            ...rec,
+            adjustedStart: adjStart,
+            adjustedEnd: adjEnd,
+            selfConfirmed: rec.selfConfirmed || false,
+            managerConfirmed: rec.managerConfirmed || false,
+            managerComment: rec.managerComment || "",
+            confirmedBy: rec.confirmedBy || "",
+            confirmedAt: rec.confirmedAt || ""
+        };
+
+        if (idx >= 0) {
+            monthly[idx] = { ...monthly[idx], ...newRec };
+        } else {
+            monthly.push(newRec);
+        }
+
+        localStorage.setItem("monthlyRecords", JSON.stringify(monthly));
+        console.log("🗂 monthlyRecords更新:", newRec.emp, newRec.date, newRec.type);
+    }
 
 </script>
 </body>

@@ -17,7 +17,6 @@ function appendSubtotalRow(tbody, label, records) {
 
             if (adjStart && adjEnd) {
                 let diff = timeToMin(adjEnd) - timeToMin(adjStart);
-                console.log("Number.isFinite(diff) =" +Number.isFinite(diff));
                 if (!Number.isFinite(diff)) return; // NaNはスキップ
                 if (diff < 0) diff += 1440; // 翌日対応
                 if (diff > 360) diff -= 60; // 6h超は休憩1h控除
@@ -51,4 +50,87 @@ function appendSubtotalRow(tbody, label, records) {
         "<td colspan='4' class='border px-3 py-1'></td>";
 
     tbody.appendChild(foot);
+}
+/**
+ * 月次データの編集内容を localStorage に保存する
+ * @param {object} rec - 編集対象のレコード（1行分）
+ */
+function saveMonthlyEdit(rec) {
+    if (!rec || !rec.emp || !rec.date) return;
+
+    // 現在のデータ取得
+    const all = JSON.parse(localStorage.getItem("monthlyRecords") || "[]");
+
+    // 同じ日付・社員の既存データを検索
+    const idx = all.findIndex(r =>
+        r.emp === rec.emp &&
+        r.date === rec.date &&
+        r.proj === rec.proj // 案件番号で区別
+    );
+
+    if (idx >= 0) {
+        // 既存レコードを更新
+        all[idx] = { ...all[idx], ...rec };
+    } else {
+        // 存在しない場合は新規追加（例：打刻→月次初期生成時など）
+        all.push(rec);
+    }
+
+    // 上書き保存
+    localStorage.setItem("monthlyRecords", JSON.stringify(all));
+    console.log("monthlyRecords",JSON.stringify(all));
+
+    // ついでに attendanceRecords も同期（必要なら）
+    const allAtt = JSON.parse(localStorage.getItem("attendanceRecords") || "[]");
+    const aidx = allAtt.findIndex(r =>
+        r.emp === rec.emp &&
+        r.date === rec.date &&
+        r.proj === rec.proj
+    );
+    if (aidx >= 0) {
+        allAtt[aidx] = { ...allAtt[aidx], ...rec };
+        localStorage.setItem("attendanceRecords", JSON.stringify(allAtt));
+    }
+}
+
+// ====== Utility ======
+function roundTo15Up(time) {
+    if (!time) return "";
+    const [h, m] = time.split(":").map(Number);
+    const total = h * 60 + m;
+    const adj = Math.ceil(total / 15) * 15;
+    const hh = String(Math.floor(adj / 60)).padStart(2, "0");
+    const mm = String(adj % 60).padStart(2, "0");
+    return hh + ":" + mm;
+}
+function roundTo15Down(time) {
+    if (!time) return "";
+    const [h, m] = time.split(":").map(Number);
+    const total = h * 60 + m;
+    const adj = Math.floor(total / 15) * 15;
+    const hh = String(Math.floor(adj / 60)).padStart(2, "0");
+    const mm = String(adj % 60).padStart(2, "0");
+    return hh + ":" + mm;
+}
+function timeToMin(t) {
+    if (!t) return 0;
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+}
+function getDayInfo(dateStr) {
+    const d = new Date(dateStr);
+    const days = ["日", "月", "火", "水", "木", "金", "土"];
+    const dayName = days[d.getDay()];
+    const isSunday = d.getDay() === 0;
+    return { dayName, isSunday };
+}
+
+function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+
+function formatDateTime(dt) {
+    return dt.getFullYear() + '/' +
+        pad2(dt.getMonth() + 1) + '/' +
+        pad2(dt.getDate()) + ' ' +
+        pad2(dt.getHours()) + ':' +
+        pad2(dt.getMinutes());
 }
