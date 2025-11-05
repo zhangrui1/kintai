@@ -5,50 +5,108 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="/kintai/js/commonFunction.js"></script>
 <style>
+    /* =========================================================
+       ✅ レイアウト構成（テーブル全体のスクロールと固定設定）
+    ========================================================== */
+    .table-container {
+        overflow: auto;
+        max-height: 80vh; /* 高さ制限（必要に応じ調整） */
+        position: relative;
+    }
+
     table {
         width: 100%;
-        table-layout: fixed; /* ✅ 列幅固定（項目ごとに設定が有効になる） */
+        table-layout: fixed; /* 列幅固定（min-width指定を有効に） */
         border-collapse: collapse;
     }
 
+    /* =========================================================
+       ✅ 基本スタイル
+    ========================================================== */
     th, td {
         border: 1px solid #ddd;
         padding: 4px 6px;
         text-align: center;
         white-space: nowrap;
         font-size: 0.9rem;
+        background: #fff;
     }
 
-    /* ✅ タイトル行：改行許可 */
+    /* =========================================================
+       ✅ 見出し行（上部固定＋改行許可）
+    ========================================================== */
     thead th {
-        white-space: normal;
+        position: sticky;
+        top: 0;
+        background: #f3f4f6; /* Tailwind: bg-gray-100 相当 */
+        z-index: 20; /* 上に重ねる */
+        white-space: normal; /* 項目名で改行を許可 */
         line-height: 1.2;
         word-break: keep-all;
     }
 
-    /* ✅ 各列の最小幅設定 */
-    th:nth-child(1), td:nth-child(1) { min-width: 90px; }  /* 日付 */
-    th:nth-child(2), td:nth-child(2) { min-width: 90px; }  /* 社員名 */
-    th:nth-child(3), td:nth-child(3) { min-width: 120px; } /* 現場名 */
+    /* =========================================================
+       ✅ 左3列固定（日付・社員名・現場名）
+    ========================================================== */
+    th:nth-child(1), td:nth-child(1) {
+        position: sticky;
+        left: 0;
+        z-index: 30;
+    }
+
+    th:nth-child(2), td:nth-child(2) {
+        position: sticky;
+        left: 90px; /* ← 1列目の幅に合わせる */
+        z-index: 30;
+    }
+
+    th:nth-child(3), td:nth-child(3) {
+        position: sticky;
+        left: 180px; /* ← 1+2列分の合計幅に合わせる */
+        z-index: 30;
+    }
+
+    /* ✅ 固定列のヘッダーを最前面に */
+    thead th:nth-child(1),
+    thead th:nth-child(2),
+    thead th:nth-child(3) {
+        z-index: 40;
+    }
+
+    /* =========================================================
+       ✅ 各列の最小幅設定（必要に応じ調整）
+    ========================================================== */
+    /* 日付・社員名・現場名はsticky位置により実質固定されるためコメントアウト */
+    /* th:nth-child(1), td:nth-child(1) { min-width: 90px; }  日付 */
+    /* th:nth-child(2), td:nth-child(2) { min-width: 90px; }  社員名 */
+    /* th:nth-child(3), td:nth-child(3) { min-width: 120px; } 現場名 */
+
     th:nth-child(4), td:nth-child(4),
     th:nth-child(5), td:nth-child(5),
     th:nth-child(6), td:nth-child(6) { min-width: 70px; }  /* 移動系 */
+
     th:nth-child(7), td:nth-child(7) { min-width: 80px; }  /* 案件番号 */
     th:nth-child(8), td:nth-child(8) { min-width: 60px; }  /* 区分 */
+
     th:nth-child(9), td:nth-child(9),
     th:nth-child(10), td:nth-child(10),
     th:nth-child(11), td:nth-child(11),
     th:nth-child(12), td:nth-child(12) { min-width: 70px; } /* 時刻系 */
+
     th:nth-child(13), td:nth-child(13),
     th:nth-child(14), td:nth-child(14),
     th:nth-child(15), td:nth-child(15) { min-width: 65px; } /* 時間 */
+
     th:nth-child(16), td:nth-child(16) { min-width: 60px; }  /* 宿泊 */
-    th:nth-child(17), td:nth-child(17) { min-width: 260px; } /* ✅ メモ欄拡張 */
+    th:nth-child(17), td:nth-child(17) { min-width: 260px; } /* メモ欄 */
     th:nth-child(18), td:nth-child(18) { min-width: 60px; }  /* 確認 */
     th:nth-child(19), td:nth-child(19) { min-width: 80px; }  /* 確認者 */
     th:nth-child(20), td:nth-child(20) { min-width: 120px; } /* 確認日時 */
 
-    /* ✅ メモ欄の見やすさUP */
+    /* =========================================================
+       ✅ 個別装飾
+    ========================================================== */
+    /* メモ欄入力ボックス */
     td input.memoInput {
         width: 100%;
         min-height: 2rem;
@@ -57,19 +115,40 @@
         padding: 3px 6px;
     }
 
-    /* ✅ 改行・行間をやや詰める */
+    /* 小計行 */
     .subrow {
         background: #fafafa;
         font-size: 0.85rem;
         line-height: 1.2;
     }
 
-    /* 背景色はそのまま維持 */
-    tr.in-progress { background-color: #fff7b0 !important; }
-    tr.auto-complete { background-color: #e5e7eb !important; }
-    tr.complete { background-color: #ffffff !important; }
+    /* 背景色（状態別） */
+    /* === 状態別行背景（Tailwind上書き対応）=== */
+    table tbody tr.in-progress > td,
+    table tbody tr.in-progress > th {
+        background-color: #fff7b0 !important;
+    }
+    table tbody tr.auto-complete > td,
+    table tbody tr.auto-complete > th {
+        background-color: #e5e7eb !important;
+    }
+    table tbody tr.complete > td,
+    table tbody tr.complete > th {
+        background-color: #ffffff !important;
+    }
+
+    /* 固定列も同様に上書き */
+    /*table tbody tr.in-progress td:nth-child(1),*/
+    /*table tbody tr.in-progress td:nth-child(2),*/
+    /*table tbody tr.in-progress td:nth-child(3),*/
+    /*table tbody tr.auto-complete td:nth-child(1),*/
+    /*table tbody tr.auto-complete td:nth-child(2),*/
+    /*table tbody tr.auto-complete td:nth-child(3) {*/
+    /*    background-color: inherit !important; !* 行全体と同じ色を継承 *!*/
+    /*}*/
 
 </style>
+
 <html lang="ja">
 <head>
     <meta charset="UTF-8" />
@@ -110,7 +189,7 @@
         </div>
 
         <!-- 一覧 -->
-        <div class="overflow-x-auto">
+        <div class="table-container">
             <table class="border text-sm table-auto">
                 <thead class="bg-gray-200 text-center">
                 <tr>
@@ -276,8 +355,8 @@
                 "<td class='border px-3 py-1 text-left'>" + (d.managerComment || "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (d.confirmedBy || "") + "</td>" +
                 "<td class='border px-3 py-1'>" + (d.confirmedAt || "") + "</td>";
-            if (d.managerConfirmed) tr.classList.add("manager-confirmed");
-            else if (d.selfConfirmed) tr.classList.add("self-confirmed");
+            // if (d.managerConfirmed) tr.classList.add("manager-confirmed");
+            // else if (d.selfConfirmed) tr.classList.add("self-confirmed");
 
 
 // ✅ ここから下にイベントを追加する

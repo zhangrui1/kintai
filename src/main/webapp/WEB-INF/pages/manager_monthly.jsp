@@ -10,9 +10,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/kintai/js/commonFunction.js"></script>
     <style>
+        /* ✅ テーブル全体をスクロール可能にする */
+        .table-container {
+            overflow: auto;
+            max-height: 80vh;
+            position: relative;
+        }
+
         table {
             width: 100%;
-            table-layout: fixed; /* ✅ 列幅固定（項目ごとに設定が有効になる） */
+            table-layout: fixed;
             border-collapse: collapse;
         }
 
@@ -24,17 +31,50 @@
             font-size: 0.9rem;
         }
 
-        /* ✅ タイトル行：改行許可 */
+        /* ✅ 見出し行（上部固定＋改行許可） */
         thead th {
+            position: sticky;
+            top: 0;
+            background: #f3f4f6;
+            z-index: 20;
             white-space: normal;
             line-height: 1.2;
             word-break: keep-all;
         }
 
+        /* ✅ 左3列固定（日付・社員名・現場名） */
+        th:nth-child(1),
+        td:nth-child(1) {
+            position: sticky;
+            left: 0;
+            z-index: 30;
+            background: #fff;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            position: sticky;
+            left: 90px; /* 1列目の幅に合わせる */
+            z-index: 30;
+            background: #fff;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            position: sticky;
+            left: 180px; /* 1+2列分 */
+            z-index: 30;
+            background: #fff;
+        }
+
+        /* ✅ 固定列の罫線を上に描く（ヘッダー優先） */
+        thead th:nth-child(1),
+        thead th:nth-child(2),
+        thead th:nth-child(3) {
+            z-index: 40;
+        }
+
         /* ✅ 各列の最小幅設定 */
-        th:nth-child(1), td:nth-child(1) { min-width: 90px; }  /* 日付 */
-        th:nth-child(2), td:nth-child(2) { min-width: 90px; }  /* 社員名 */
-        th:nth-child(3), td:nth-child(3) { min-width: 120px; } /* 現場名 */
         th:nth-child(4), td:nth-child(4),
         th:nth-child(5), td:nth-child(5),
         th:nth-child(6), td:nth-child(6) { min-width: 70px; }  /* 移動系 */
@@ -48,12 +88,12 @@
         th:nth-child(14), td:nth-child(14),
         th:nth-child(15), td:nth-child(15) { min-width: 65px; } /* 時間 */
         th:nth-child(16), td:nth-child(16) { min-width: 60px; }  /* 宿泊 */
-        th:nth-child(17), td:nth-child(17) { min-width: 260px; } /* ✅ メモ欄拡張 */
+        th:nth-child(17), td:nth-child(17) { min-width: 260px; } /* メモ欄 */
         th:nth-child(18), td:nth-child(18) { min-width: 60px; }  /* 確認 */
         th:nth-child(19), td:nth-child(19) { min-width: 80px; }  /* 確認者 */
         th:nth-child(20), td:nth-child(20) { min-width: 120px; } /* 確認日時 */
 
-        /* ✅ メモ欄の見やすさUP */
+        /* ✅ メモ欄 */
         td input.memoInput {
             width: 100%;
             min-height: 2rem;
@@ -62,19 +102,28 @@
             padding: 3px 6px;
         }
 
-        /* ✅ 改行・行間をやや詰める */
+        /* ✅ 小計行 */
         .subrow {
             background: #fafafa;
             font-size: 0.85rem;
             line-height: 1.2;
         }
 
-        /* 背景色はそのまま維持 */
-        tr.in-progress { background-color: #fff7b0 !important; }
-        tr.auto-complete { background-color: #e5e7eb !important; }
-        tr.complete { background-color: #ffffff !important; }
-
+        /* === 状態別行背景（Tailwind上書き対応）=== */
+        table tbody tr.in-progress > td,
+        table tbody tr.in-progress > th {
+            background-color: #fff7b0 !important;
+        }
+        table tbody tr.auto-complete > td,
+        table tbody tr.auto-complete > th {
+            background-color: #e5e7eb !important;
+        }
+        table tbody tr.complete > td,
+        table tbody tr.complete > th {
+            background-color: #ffffff !important;
+        }
     </style>
+
 </head>
 <body class="bg-gray-100 flex min-h-screen">
 <!-- ✅ 左メニュー -->
@@ -132,7 +181,7 @@
     </div>
 
     <!-- 一覧 -->
-    <div class="overflow-x-auto">
+    <div class="table-container">
         <table class="border text-sm table-auto">
             <thead class="bg-gray-200 text-center">
             <tr>
@@ -437,7 +486,6 @@
         function appendRow(rec, subtotalCellRef = null) {
             const { dayName, isSunday } = getDayInfo(rec.date);
             const { adjStart, adjEnd, hrs } = calcAdjustedHours(rec);
-            console.log("adjStart =" +adjStart +"adjEnd =" +adjEnd  );
 
             const tr = document.createElement("tr");
             tr.className = "text-center";
