@@ -113,33 +113,30 @@
             <div class="grid md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-semibold mb-1 flex items-center space-x-1">
+                        <span>案件番号</span>
+                        <div class="relative group">
+                            <span class="text-gray-500 text-xs cursor-pointer select-none">ℹ️</span>
+                            <div class="tooltip -top-8 left-0">案件番号が選択された。→ 現場名を自動でセット（自動入力・手入力禁止）</div>
+                            <div class="tooltip -top-8 left-0">案件番号が空白。→ 現場名はマスタから選択・手入力</div>
+                        </div>
+                    </label>
+                    <select id="projectSelect" class="w-full border rounded px-3 py-2">
+                        <option value=""></option>
+                        <option value="TX000125">TX000125</option>
+                        <option value="TX000126">TX000126</option>
+                        <option value="TX000127">TX000127</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1 flex items-center space-x-1">
                         <span>現場名</span>
                         <div class="relative group">
                             <span class="text-gray-500 text-xs cursor-pointer select-none">ℹ️</span>
                             <div class="tooltip -top-8 left-0">案件システムから取得する現場名です。</div>
                         </div>
                     </label>
-                    <select id="siteSelect" class="w-full border rounded px-3 py-2">
-                        <option>本社</option>
-                        <option>東京A現場</option>
-                        <option>大阪B現場</option>
-                        <option>名古屋C現場</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold mb-1 flex items-center space-x-1">
-                        <span>案件番号</span>
-                        <div class="relative group">
-                            <span class="text-gray-500 text-xs cursor-pointer select-none">ℹ️</span>
-                            <div class="tooltip -top-8 left-0">案件システムから取得する案件番号です。</div>
-                        </div>
-                    </label>
-                    <select id="projectSelect" class="w-full border rounded px-3 py-2">
-                        <option></option>
-                        <option>TX000125</option>
-                        <option>TX000126</option>
-                        <option>TX000127</option>
-                    </select>
+                    <input  list="siteList" id="siteSelect" class="w-full border rounded px-3 py-2" placeholder="現場名を入力" />
+                    <datalist id="siteList"></datalist>
                 </div>
             </div>
 
@@ -210,10 +207,12 @@
     let activeEmployees = JSON.parse(localStorage.getItem("activeEmployees")||"{}");
     const DEFAULT_MOVE_TIME = 45; // デフォルト移動時間（分）
     const managerName = "宮本 義史";
+
     /* --- 初期表示 --- */
     window.addEventListener("DOMContentLoaded",()=>{
         loadTeams();
         applyRole();
+
 
         const today=new Date();
         const yyyy=today.getFullYear(),mm=String(today.getMonth()+1).padStart(2,"0"),dd=String(today.getDate()).padStart(2,"0");
@@ -759,6 +758,61 @@
         localStorage.setItem("monthlyRecords", JSON.stringify(monthly));
         console.log("🗂 monthlyRecords更新:", newRec.emp, newRec.date, newRec.type);
     }
+
+
+    // === 現場マスタから datalist を作成 ===
+
+    // 案件番号と現場名の対応マップ（将来DBから取得可能）
+    const projectToSiteMap = {
+        "": "本社",
+        "TX000125": "東京A現場",
+        "TX000126": "大阪B現場",
+        "TX000127": "名古屋C現場"
+    };
+    /* === 仮の現場マスタ === */
+    const siteMaster = [
+        "本社",
+        "東京A現場",
+        "大阪B現場",
+        "名古屋C現場",
+        "広島D現場"
+    ];
+    const projectSelect = document.getElementById("projectSelect");
+    const siteSelect = document.getElementById("siteSelect");
+    const siteList = document.getElementById("siteList");
+    function populateSiteList() {
+        siteList.innerHTML = "";
+        siteMaster.forEach(site => {
+            const option = document.createElement("option");
+            option.value = site;
+            siteList.appendChild(option);
+        });
+    }
+
+    populateSiteList();
+    projectSelect.addEventListener("change", function() {
+        const proj = this.value;
+        console.log("proj 案件番号=" +proj+"  projectToSiteMap=",projectToSiteMap);
+        console.log("projectToSiteMap[proj]",projectToSiteMap[proj]);
+        const siteSelect = document.getElementById("siteSelect");
+        if (!siteSelect) {
+            console.warn("⚠️  siteSelect が見つかりません。HTMLのidを確認してください。");
+            return;
+        }
+
+        if (proj && projectToSiteMap[proj]) {
+            // 案件番号に対応する現場を自動セット
+            siteSelect.value = projectToSiteMap[proj];
+            siteSelect.setAttribute("readonly", true);
+            siteSelect.classList.add("bg-gray-100"); // 見た目でも入力不可を示す
+        } else {
+            // 案件番号が空 → 現場名を手入力可能
+            siteSelect.removeAttribute("readonly");
+            siteSelect.classList.remove("bg-gray-100");
+            siteSelect.value = "";
+        }
+    });
+
 
 </script>
 </body>
